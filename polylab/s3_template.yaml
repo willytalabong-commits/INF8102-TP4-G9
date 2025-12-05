@@ -1,0 +1,26 @@
+Description: TP4 - S3 bucket polystudents3-group9 reproduit en Python avec Troposphere (ACL private, SSE-KMS, versioning, deletion policy).
+Outputs:
+  BucketName:
+    Description: Nom du bucket S3 créé
+    Value: !Ref 'Polystudents3Bucket'
+  KmsKeyArnUsed:
+    Description: ARN de la clé KMS utilisée pour l'encryption
+    Value: !Ref 'KmsKeyArn'
+Parameters:
+  KmsKeyArn:
+    Description: ARN de la clé KMS polystudent-kms1 utilisée pour chiffrer le bucket.
+    Type: String
+Resources:
+  Polystudents3Bucket:
+    DeletionPolicy: Retain
+    Properties:
+      AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              KMSMasterKeyID: !Ref 'KmsKeyArn'
+              SSEAlgorithm: aws:kms
+      BucketName: polystudents3-group9
+      VersioningConfiguration:
+        Status: Enabled
+    Type: AWS::S3::Bucket

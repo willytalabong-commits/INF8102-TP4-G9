@@ -1,0 +1,71 @@
+Description: TP4 - VPC avec VPC Flow Logs (REJECT uniquement) vers S3 polystudents3-group9 - Groupe 9
+Outputs:
+  PublicSubnetId:
+    Description: ID du subnet public
+    Value: !Ref 'PublicSubnet'
+  VpcFlowLogId:
+    Description: ID du VPC Flow Log (REJECT -> S3)
+    Value: !Ref 'VpcRejectedFlowLogs'
+  VpcId:
+    Description: ID de la VPC créée
+    Value: !Ref 'PolystudentVPC'
+Resources:
+  DefaultRouteToInternet:
+    Properties:
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref 'InternetGateway'
+      RouteTableId: !Ref 'PublicRouteTable'
+    Type: AWS::EC2::Route
+  InternetGateway:
+    Properties:
+      Tags:
+        - Key: Name
+          Value: polystudent-igw-group9
+    Type: AWS::EC2::InternetGateway
+  PolystudentVPC:
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: polystudent-vpc-group9
+    Type: AWS::EC2::VPC
+  PublicRouteTable:
+    Properties:
+      Tags:
+        - Key: Name
+          Value: public-rt-group9
+      VpcId: !Ref 'PolystudentVPC'
+    Type: AWS::EC2::RouteTable
+  PublicSubnet:
+    Properties:
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: public-subnet-group9
+      VpcId: !Ref 'PolystudentVPC'
+    Type: AWS::EC2::Subnet
+  PublicSubnetRouteTableAssociation:
+    Properties:
+      RouteTableId: !Ref 'PublicRouteTable'
+      SubnetId: !Ref 'PublicSubnet'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  VPCGatewayAttachment:
+    Properties:
+      InternetGatewayId: !Ref 'InternetGateway'
+      VpcId: !Ref 'PolystudentVPC'
+    Type: AWS::EC2::VPCGatewayAttachment
+  VpcRejectedFlowLogs:
+    Properties:
+      DestinationOptions:
+        FileFormat: plain-text
+        HiveCompatiblePartitions: false
+        PerHourPartition: true
+      LogDestination: arn:aws:s3:::polystudents3-group9
+      LogDestinationType: s3
+      ResourceId: !Ref 'PolystudentVPC'
+      ResourceType: VPC
+      TrafficType: REJECT
+    Type: AWS::EC2::FlowLog

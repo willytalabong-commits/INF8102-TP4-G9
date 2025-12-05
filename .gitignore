@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+
+# Clés et credentials
+*.pem
+*.key
+*.crt
+
+# Environnements
+venv/
+.env
+
+# Fichiers temporaires
+*.log

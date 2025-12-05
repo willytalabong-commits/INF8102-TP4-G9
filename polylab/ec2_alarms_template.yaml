@@ -1,0 +1,263 @@
+Description: TP4 - EC2 instances (2 publiques, 2 privées) avec rôle IAM LabRole via l'InstanceProfile existant 'LabInstanceProfile' et alarmes CloudWatch sur NetworkPacketsIn (seuil 1000 pkts/s).
+Outputs:
+  PrivateInstanceAz1Id:
+    Description: Instance privée AZ1
+    Value: !Ref 'PrivateInstanceAz1'
+  PrivateInstanceAz2Id:
+    Description: Instance privée AZ2
+    Value: !Ref 'PrivateInstanceAz2'
+  PublicInstanceAz1Id:
+    Description: Instance publique AZ1
+    Value: !Ref 'PublicInstanceAz1'
+  PublicInstanceAz2Id:
+    Description: Instance publique AZ2
+    Value: !Ref 'PublicInstanceAz2'
+  VpcId:
+    Description: ID de la VPC
+    Value: !Ref 'PolystudentVpc'
+Parameters:
+  AZ1:
+    Default: us-east-1a
+    Description: Première zone de disponibilité
+    Type: AWS::EC2::AvailabilityZone::Name
+  AZ2:
+    Default: us-east-1b
+    Description: Deuxième zone de disponibilité
+    Type: AWS::EC2::AvailabilityZone::Name
+  AmiId:
+    Default: ami-0c02fb55956c7d316
+    Description: AMI à utiliser pour les instances EC2
+    Type: AWS::EC2::Image::Id
+  InstanceType:
+    Default: t3.micro
+    Description: Type des instances EC2
+    Type: String
+  KeyName:
+    Description: Nom de la paire de clés EC2 pour SSH
+    Type: AWS::EC2::KeyPair::KeyName
+Resources:
+  AlarmPrivateAz1PacketsIn:
+    Properties:
+      AlarmDescription: !Sub
+        - Alarm when NetworkPacketsIn > 1000 pkts/s on ${Desc}
+        - Desc: private-instance-az1
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref 'PrivateInstanceAz1'
+      EvaluationPeriods: 1
+      MetricName: NetworkPacketsIn
+      Namespace: AWS/EC2
+      Period: 60
+      Statistic: Average
+      Threshold: 1000
+      TreatMissingData: notBreaching
+    Type: AWS::CloudWatch::Alarm
+  AlarmPrivateAz2PacketsIn:
+    Properties:
+      AlarmDescription: !Sub
+        - Alarm when NetworkPacketsIn > 1000 pkts/s on ${Desc}
+        - Desc: private-instance-az2
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref 'PrivateInstanceAz2'
+      EvaluationPeriods: 1
+      MetricName: NetworkPacketsIn
+      Namespace: AWS/EC2
+      Period: 60
+      Statistic: Average
+      Threshold: 1000
+      TreatMissingData: notBreaching
+    Type: AWS::CloudWatch::Alarm
+  AlarmPublicAz1PacketsIn:
+    Properties:
+      AlarmDescription: !Sub
+        - Alarm when NetworkPacketsIn > 1000 pkts/s on ${Desc}
+        - Desc: public-instance-az1
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref 'PublicInstanceAz1'
+      EvaluationPeriods: 1
+      MetricName: NetworkPacketsIn
+      Namespace: AWS/EC2
+      Period: 60
+      Statistic: Average
+      Threshold: 1000
+      TreatMissingData: notBreaching
+    Type: AWS::CloudWatch::Alarm
+  AlarmPublicAz2PacketsIn:
+    Properties:
+      AlarmDescription: !Sub
+        - Alarm when NetworkPacketsIn > 1000 pkts/s on ${Desc}
+        - Desc: public-instance-az2
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref 'PublicInstanceAz2'
+      EvaluationPeriods: 1
+      MetricName: NetworkPacketsIn
+      Namespace: AWS/EC2
+      Period: 60
+      Statistic: Average
+      Threshold: 1000
+      TreatMissingData: notBreaching
+    Type: AWS::CloudWatch::Alarm
+  DefaultPublicRoute:
+    Properties:
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref 'InternetGateway'
+      RouteTableId: !Ref 'PublicRouteTable'
+    Type: AWS::EC2::Route
+  IgwAttachment:
+    Properties:
+      InternetGatewayId: !Ref 'InternetGateway'
+      VpcId: !Ref 'PolystudentVpc'
+    Type: AWS::EC2::VPCGatewayAttachment
+  InstanceSecurityGroup:
+    Properties:
+      GroupDescription: Security group pour instances EC2 (TP4)
+      SecurityGroupEgress:
+        - CidrIp: '0.0.0.0/0'
+          FromPort: 0
+          IpProtocol: '-1'
+          ToPort: 65535
+      SecurityGroupIngress:
+        - CidrIp: '0.0.0.0/0'
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+        - CidrIp: '0.0.0.0/0'
+          FromPort: 80
+          IpProtocol: tcp
+          ToPort: 80
+      Tags:
+        - Key: Name
+          Value: polystudent-ec2-sg
+      VpcId: !Ref 'PolystudentVpc'
+    Type: AWS::EC2::SecurityGroup
+  InternetGateway:
+    Properties:
+      Tags:
+        - Key: Name
+          Value: polystudent-ec2-alarms-igw
+    Type: AWS::EC2::InternetGateway
+  PolystudentVpc:
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: polystudent-vpc-ec2-alarms
+    Type: AWS::EC2::VPC
+  PrivateInstanceAz1:
+    Properties:
+      IamInstanceProfile: LabInstanceProfile
+      ImageId: !Ref 'AmiId'
+      InstanceType: !Ref 'InstanceType'
+      KeyName: !Ref 'KeyName'
+      SecurityGroupIds:
+        - !Ref 'InstanceSecurityGroup'
+      SubnetId: !Ref 'PrivateSubnetAz1'
+      Tags:
+        - Key: Name
+          Value: private-instance-az1
+    Type: AWS::EC2::Instance
+  PrivateInstanceAz2:
+    Properties:
+      IamInstanceProfile: LabInstanceProfile
+      ImageId: !Ref 'AmiId'
+      InstanceType: !Ref 'InstanceType'
+      KeyName: !Ref 'KeyName'
+      SecurityGroupIds:
+        - !Ref 'InstanceSecurityGroup'
+      SubnetId: !Ref 'PrivateSubnetAz2'
+      Tags:
+        - Key: Name
+          Value: private-instance-az2
+    Type: AWS::EC2::Instance
+  PrivateSubnetAz1:
+    Properties:
+      AvailabilityZone: !Ref 'AZ1'
+      CidrBlock: 10.0.2.0/24
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: private-az1
+      VpcId: !Ref 'PolystudentVpc'
+    Type: AWS::EC2::Subnet
+  PrivateSubnetAz2:
+    Properties:
+      AvailabilityZone: !Ref 'AZ2'
+      CidrBlock: 10.0.3.0/24
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: private-az2
+      VpcId: !Ref 'PolystudentVpc'
+    Type: AWS::EC2::Subnet
+  PublicAz1RTA:
+    Properties:
+      RouteTableId: !Ref 'PublicRouteTable'
+      SubnetId: !Ref 'PublicSubnetAz1'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PublicAz2RTA:
+    Properties:
+      RouteTableId: !Ref 'PublicRouteTable'
+      SubnetId: !Ref 'PublicSubnetAz2'
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  PublicInstanceAz1:
+    Properties:
+      IamInstanceProfile: LabInstanceProfile
+      ImageId: !Ref 'AmiId'
+      InstanceType: !Ref 'InstanceType'
+      KeyName: !Ref 'KeyName'
+      SecurityGroupIds:
+        - !Ref 'InstanceSecurityGroup'
+      SubnetId: !Ref 'PublicSubnetAz1'
+      Tags:
+        - Key: Name
+          Value: public-instance-az1
+    Type: AWS::EC2::Instance
+  PublicInstanceAz2:
+    Properties:
+      IamInstanceProfile: LabInstanceProfile
+      ImageId: !Ref 'AmiId'
+      InstanceType: !Ref 'InstanceType'
+      KeyName: !Ref 'KeyName'
+      SecurityGroupIds:
+        - !Ref 'InstanceSecurityGroup'
+      SubnetId: !Ref 'PublicSubnetAz2'
+      Tags:
+        - Key: Name
+          Value: public-instance-az2
+    Type: AWS::EC2::Instance
+  PublicRouteTable:
+    Properties:
+      Tags:
+        - Key: Name
+          Value: public-rt
+      VpcId: !Ref 'PolystudentVpc'
+    Type: AWS::EC2::RouteTable
+  PublicSubnetAz1:
+    Properties:
+      AvailabilityZone: !Ref 'AZ1'
+      CidrBlock: 10.0.0.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: public-az1
+      VpcId: !Ref 'PolystudentVpc'
+    Type: AWS::EC2::Subnet
+  PublicSubnetAz2:
+    Properties:
+      AvailabilityZone: !Ref 'AZ2'
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: public-az2
+      VpcId: !Ref 'PolystudentVpc'
+    Type: AWS::EC2::Subnet
